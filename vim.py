@@ -11,11 +11,24 @@ from flask import json
 from reast import *
 
 
+def bitly_shorten(url):
+    query = ['version=2.0.1&longUrl=', '&login=raaniconama&apiKey=R_446879b310c0e904023fdda3e0b97998']
+    u = "http://api.bit.ly/shorten?{query[0]}{url}{query[1]}".format(query=query, url=url)
+    with urllib.request.urlopen(u) as f:
+        data = f.read()
+    return json.loads(data)["results"][url]['shortUrl']
+
+
+
 class Atnd(object):
     r = re.compile(r"""\|(.*)\|(.*)\|(.*)\|"(.*)":(.*)\|""")
 
     def __init__(self):
         self.d = {}
+
+    @property
+    def last(self):
+        return self.d[len(self.d)]
     
     def populate(self):
         s = self.get()
@@ -155,9 +168,12 @@ def help(keyword=None):
 
 @dispatch.bind('VimAdv')
 def VimAdv(anId=None, ranking=None, me=None, user=None):
-    pass
+    atnd.populate()
 
-
+    if not any((anId, ranking, me, user)):
+        short = bitly_shorten(atnd.last['url'])
+        return """{last[count]} {last[date]} {last[author]} {last[title]} - {url}""".\
+                format(last=atnd.last, url=short)
 
 
 
@@ -180,6 +196,9 @@ if __name__ == '__main__':
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'pplt':
         print(atnd.populate())
+        sys.exit()
+    if len(sys.argv) > 1 and sys.argv[1] == 'VimAdv':
+        print(VimAdv())
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'debug':
         app.debug = True
