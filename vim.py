@@ -29,6 +29,13 @@ class Atnd(object):
     @property
     def last(self):
         return self.d[len(self.d)]
+
+    def __getitem__(self, key):
+        return self.d[key]
+
+    def filter_by(self, **kw):
+        return [v for v in self.d.values() if all([v[k] == kw[k] for k in kw])]
+            
     
     def populate(self):
         s = self.get()
@@ -65,7 +72,7 @@ keyword = named('keyword', r'\w+')
 
 ranking = named('ranking', '#ranking', may_be(an_id))
 me = named('me', '#me')
-user = named('usr', 'ranking')
+user = named('user', '\w+')
 
 builder = Cat(Or(
     named("VimAdv", "", 
@@ -166,14 +173,28 @@ def help(keyword=None):
 
 
 
+
+def prn(entry, url):
+    s = """{entry[count]} {entry[date]} {entry[author]} {entry[title]} - {url}"""
+    return s.format(entry=entry, url=url)
+
+
 @dispatch.bind('VimAdv')
 def VimAdv(anId=None, ranking=None, me=None, user=None):
     atnd.populate()
 
     if not any((anId, ranking, me, user)):
         short = bitly_shorten(atnd.last['url'])
-        return """{last[count]} {last[date]} {last[author]} {last[title]} - {url}""".\
-                format(last=atnd.last, url=short)
+        return prn(atnd.last, short)
+
+    if anId is not None:
+        entry = atnd[int(anId)]
+        short = bitly_shorten(entry['url'])
+        return prn(entry, short)
+
+    if me is not None:
+        return '\n'.join([prn(entry, bitly_shorten(entry['url']))
+            for entry in atnd.filter_by(author='@raa0121')])
 
 
 
@@ -191,6 +212,15 @@ def SEGV():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        try:
+            n = int(sys.argv[1])
+        except ValueError:
+            n = 0
+        if n > 0:
+            print(VimAdv(n))
+            sys.exit()
+
     if len(sys.argv) > 1 and sys.argv[1] == 'atnd':
         print(atnd.get())
         sys.exit()
@@ -199,6 +229,9 @@ if __name__ == '__main__':
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'VimAdv':
         print(VimAdv())
+        sys.exit()
+    if len(sys.argv) > 1 and sys.argv[1] == '#me':
+        print(VimAdv(me=True))
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'debug':
         app.debug = True
