@@ -15,10 +15,15 @@ class Atnd(object):
     r = re.compile(r"""\|(.*)\|(.*)\|(.*)\|"(.*)":(.*)\|""")
 
     def __init__(self):
-        self.xs = []
+        self.d = {}
     
     def populate(self):
-        pass
+        s = self.get()
+        for line in s.splitlines():
+            d = self.parse(line)
+            if d is not None:
+                self.d[int(d['count'])] = d
+        return len(self.d)
 
     def get(self): 
         with urllib.request.urlopen("http://api.atnd.org/events/?event_id=33746&format=json") as f:
@@ -26,8 +31,11 @@ class Atnd(object):
         return atnd['events'][0]['description']
 
     def parse(self, line):
-        g = self.r.match(line).groups()
-        return dict(zip(('count','date', 'author', 'title', 'url'), g))
+        m = self.r.match(line)
+        if m is None:
+            return None
+        g = m.groups()
+        return dict(zip(('count','date', 'author', 'title', 'url'), (int(g[0]),)+g[1:]))
 
 
 
@@ -169,6 +177,9 @@ def SEGV():
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'atnd':
         print(atnd.get())
+        sys.exit()
+    if len(sys.argv) > 1 and sys.argv[1] == 'pplt':
+        print(atnd.populate())
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'debug':
         app.debug = True

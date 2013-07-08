@@ -216,12 +216,16 @@ class AtndTestCase(unittest.TestCase):
         line = """|213|07/01(月)|@manga_osyo|"Vim で Web ページを :source する":http://d.hatena.ne.jp/osyo-manga/20130701/1372680621|"""
         d = atnd.parse(line)
         self.assertEqual(dict(
-            count='213',
+            count=213,
             date='07/01(月)',
             author='@manga_osyo',
             title='Vim で Web ページを :source する', 
             url='http://d.hatena.ne.jp/osyo-manga/20130701/1372680621'),
             d)
+
+    def test_parseline_no_match(self):
+        d = atnd.parse('')
+        self.assertIsNone(d)
 
 
 if __name__ == '__main__':
