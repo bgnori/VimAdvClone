@@ -6,6 +6,8 @@ import sys
 import urllib 
 import re
 
+import itertools
+
 from flask import Flask, request
 from flask import json
 from reast import *
@@ -18,6 +20,17 @@ def bitly_shorten(url):
         data = f.read()
     return json.loads(data)["results"][url]['shortUrl']
 
+
+def ranknumbering(f, xs):
+    last_v = None
+    last_i = None
+    for i, x in enumerate(xs):
+        if last_v is not None and f(x, last_v):
+            yield last_i, x
+        else:
+            yield i, x
+            last_i = i
+            last_v = x
 
 
 class Atnd(object):
@@ -35,7 +48,11 @@ class Atnd(object):
 
     def filter_by(self, **kw):
         return [v for v in self.d.values() if all([v[k] == kw[k] for k in kw])]
-            
+
+    def group_by(self, k):
+        xs = list(self.d.values())
+        xs.sort(key=lambda v: v[k])
+        return [(k, list(g)) for k, g in itertools.groupby(xs,  lambda v:v[k])]
     
     def populate(self):
         s = self.get()
@@ -192,6 +209,18 @@ def VimAdv(anId=None, ranking=None, me=None, user=None):
         short = bitly_shorten(entry['url'])
         return prn(entry, short)
 
+    if ranking is not None:
+        if anId is None:
+            rank = 10
+        else:
+            rank = int(anId)
+        xs = list(map(lambda x : (x[0], len(x[1])), atnd.group_by('author')))
+        xs.sort(key=lambda x: x[1], reverse=True)
+
+        return '\n'.join(["{0} {1} {2}".format(i+1, name, count)
+            for i, (name, count) in ranknumbering(lambda x, y: x[1] == y[1], xs[:rank])])
+
+
     if me is not None:
         return '\n'.join([prn(entry, bitly_shorten(entry['url']))
             for entry in atnd.filter_by(author='@raa0121')])
@@ -232,6 +261,9 @@ if __name__ == '__main__':
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == '#me':
         print(VimAdv(me=True))
+        sys.exit()
+    if len(sys.argv) > 1 and sys.argv[1] == 'rank':
+        print(VimAdv(ranking=True))
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'debug':
         app.debug = True
