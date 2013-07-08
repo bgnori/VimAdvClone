@@ -5,12 +5,11 @@ from flask import json
 
 import unittest
 
-from vim import rx, ast, cap, handle
+from vim import rx, ast, cap, handle, atnd
 from reast import bindable
 
 
-
-print(ast.make_pat())
+#print(ast.make_pat())
 
 
 class reastTestCase(unittest.TestCase):
@@ -210,8 +209,19 @@ class HandleTestCase(unittest.TestCase):
         response = handle(req['events'][0])
         self.assertEqual('http://gyazo.com/f71ba83245a2f0d41031033de1c57109.png', response)
 
-
-
+class AtndTestCase(unittest.TestCase):
+    def test_get(self):
+        pass
+    def test_parseline(self):
+        line = """|213|07/01(月)|@manga_osyo|"Vim で Web ページを :source する":http://d.hatena.ne.jp/osyo-manga/20130701/1372680621|"""
+        d = atnd.parse(line)
+        self.assertEqual(dict(
+            count='213',
+            date='07/01(月)',
+            author='@manga_osyo',
+            title='Vim で Web ページを :source する', 
+            url='http://d.hatena.ne.jp/osyo-manga/20130701/1372680621'),
+            d)
 
 
 if __name__ == '__main__':

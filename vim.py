@@ -3,9 +3,37 @@
 
 import sys
 
+import urllib 
+import re
+
 from flask import Flask, request
 from flask import json
 from reast import *
+
+
+class Atnd(object):
+    r = re.compile(r"""\|(.*)\|(.*)\|(.*)\|"(.*)":(.*)\|""")
+
+    def __init__(self):
+        self.xs = []
+    
+    def populate(self):
+        pass
+
+    def get(self): 
+        with urllib.request.urlopen("http://api.atnd.org/events/?event_id=33746&format=json") as f:
+            atnd = json.loads(f.read())
+        return atnd['events'][0]['description']
+
+    def parse(self, line):
+        g = self.r.match(line).groups()
+        return dict(zip(('count','date', 'author', 'title', 'url'), g))
+
+
+
+atnd = Atnd()
+
+
 
 ws = unnamed(" ")
 def may_be(*xs):
@@ -17,7 +45,6 @@ keyword = named('keyword', r'\w+')
 ranking = named('ranking', '#ranking', may_be(an_id))
 me = named('me', '#me')
 user = named('usr', 'ranking')
-
 
 builder = Cat(Or(
     named("VimAdv", "", 
@@ -122,6 +149,10 @@ def help(keyword=None):
 def VimAdv(anId=None, ranking=None, me=None, user=None):
     pass
 
+
+
+
+
 @dispatch.bind('vimhacks')
 def vimhacks():
     pass
@@ -136,6 +167,9 @@ def SEGV():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'atnd':
+        print(atnd.get())
+        sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'debug':
         app.debug = True
 
@@ -143,5 +177,7 @@ if __name__ == '__main__':
         app.run()
     else:
         app.run(host='0.0.0.0', port=11002)
+
+
 
 
