@@ -24,7 +24,7 @@ builder = Cat(Or(
         Or(unnamed(r"\!VimAdv"), unnamed(r"\:vimadv"), unnamed(r"\!VAC")),
         may_be(Or(an_id, ranking, me, user)),
         ),
-    named("help", ":h(elp)?"),
+    named("help", ":h(elp)?", may_be(keyword)),
     named("vimhacks", ":vimhacks?", Or(
         may_be(an_id),
         may_be(keyword),
@@ -48,18 +48,91 @@ def vim():
     else:
         return "VimAdvClone & :help"
 
+class Dispatch(object):
+    def __init__(self):
+        self.mapping = {}
+
+    def bind(self, name):
+        def foo(f):
+            assert name not in self.mapping
+            self.mapping[name] = f
+            return f
+        return foo
+
+    def resolve(self, assoc):
+        for k, c in assoc.items():
+            if c.name in self.mapping:
+                return self.mapping[c.name], c.name
+        return None, None
+
+dispatch = Dispatch()
+
 def handle(event):
     text = event['message']['text']
     room = event['message']['room']
     who = event['message']['speaker_id']
 
 
+    m = rx.match(text)
 
-def help():
+    if m is None:
+        return ''
+    d = m.groupdict()
+    assoc = cap.associate(d)
+    
+    f, name = dispatch.resolve(assoc)
+
+    if f is None:
+        return 'Command not implemented "{0}".'.format(text)
+
+    b = bindable(assoc, d, (name,))
+    missing, toomany = findbind(f, b)
+
+    if missing:
+        return 'No enough args {0}'.format(missing)
+    if toomany:
+        return 'Unknown argment {0}'.format(toomany)
+    return f(**b)
+
+
+@dispatch.bind('help')
+def help(keyword=None):
+    '''generate vim help from file
+
+    a) using tag file to locate file
+        tags = File.read("#{docroot}/tags").lines.map {|l| l.chomp.split("\t", 3) }
+        t = tags.detect {|t| t[0] == help[1].sub(/@ja/,"").sub("+","\\+")}
+
+    b) help in japanese
+        if help[1] =~ /@ja/
+        docroot = jadocroot
+        t[1].sub! /.txt$/, '.jax'
+
+    c) then scrape help file text
+        text = File.read("#{docroot}/#{t[1]}")
+    '''
+
+    if keyword is None:
+        return ''
+    return 'http://gyazo.com/f71ba83245a2f0d41031033de1c57109.png'
+
+
+
+@dispatch.bind('VimAdv')
+def VimAdv(anId=None, ranking=None, me=None, user=None):
     pass
 
-def VimAdv():
+@dispatch.bind('vimhacks')
+def vimhacks():
     pass
+
+@dispatch.bind('MacVim')
+def MacVim():
+    return 'http://bit.ly/f2fjvZ#.png'
+
+@dispatch.bind('SEGV')
+def SEGV():
+    return "キャッシュ(笑)"
 
 
 if __name__ == '__main__':

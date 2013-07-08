@@ -324,7 +324,7 @@ if __name__ == '__main__':
     d = m.groupdict()
     print(d)
     assoc = cap.associate(d)
-
     print(assoc)
+    print(bindable(assoc, d, ()))
 
 

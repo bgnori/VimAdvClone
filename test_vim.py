@@ -1,11 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from vim import rx, ast, cap
-
-from reast import bindable
+from flask import json
 
 import unittest
+
+from vim import rx, ast, cap, handle
+from reast import bindable
+
+
 
 print(ast.make_pat())
 
@@ -174,5 +177,42 @@ class reastTestCase(unittest.TestCase):
     def test_segv(self):
         self.assertIsNotNone(rx.match('RubyたんがSEGVした'))
     
+
+
+class HandleTestCase(unittest.TestCase):
+    def say(self, user, text):
+        return json.dumps(dict(events=[dict(message=dict(
+            text=text, speaker_id=user, room="computer_science"))]))
+
+    def test_say(self):
+        j = self.say('raa0121', 'test')
+        req = json.loads(j)
+        event = req['events'][0]
+        self.assertIn('message', event)
+        self.assertIn('text', event['message'])
+        self.assertIn('test', event['message']['text'])
+        self.assertIn('speaker_id', event['message'])
+        self.assertIn('raa0121', event['message']['speaker_id'])
+
+
+    def test_macvim(self):
+        req = json.loads(self.say('raa0121', 'またMacVimか'))
+        response = handle(req['events'][0])
+        self.assertEqual('http://bit.ly/f2fjvZ#.png', response)
+
+    def test_help_empty(self):
+        req = json.loads(self.say('raa0121', ':h'))
+        response = handle(req['events'][0])
+        self.assertEqual('', response)
+
+    def test_help_not_found(self):
+        req = json.loads(self.say('raa0121', ':help hoge'))
+        response = handle(req['events'][0])
+        self.assertEqual('http://gyazo.com/f71ba83245a2f0d41031033de1c57109.png', response)
+
+
+
+
+
 if __name__ == '__main__':
     unittest.main()
