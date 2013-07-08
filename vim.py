@@ -11,7 +11,7 @@ ws = unnamed(" ")
 def may_be(*xs):
     return Option(OneOrMore(ws), Option(*xs))
 
-an_id = named('an_id', r'\d+')
+an_id = named('anId', r'\d+')
 keyword = named('keyword', r'\w+')
 
 ranking = named('ranking', '#ranking', may_be(an_id))
@@ -35,6 +35,7 @@ builder = Cat(Or(
 
 ast = builder.build()
 rx = ast.compile()
+cap = ast.make_capture()
 
 app = Flask(__name__)
 
