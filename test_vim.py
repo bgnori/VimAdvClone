@@ -209,6 +209,13 @@ class HandleTestCase(unittest.TestCase):
         response = handle(req['events'][0])
         self.assertEqual('http://gyazo.com/f71ba83245a2f0d41031033de1c57109.png', response)
 
+    def test_ranking_me(self):
+        req = json.loads(self.say('@raa0121', '!VimAdv #ranking #me'))
+        response = handle(req['events'][0])
+        print(response)
+        self.assertEqual('', response)
+
+
 class AtndTestCase(unittest.TestCase):
     def test_get(self):
         pass

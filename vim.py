@@ -241,7 +241,7 @@ def VimAdv(room, who, anId=None, ranking=None, me=None, user=None):
 
     if me is not None:
         return '\n'.join([prn(entry, bitly_shorten(entry['url']))
-            for entry in atnd.filter_by(author='@raa0121')])
+            for entry in atnd.filter_by(author=who)])
 
 
 
@@ -275,13 +275,13 @@ if __name__ == '__main__':
         print(atnd.populate())
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'VimAdv':
-        print(VimAdv())
+        print(VimAdv(who='@raa0121', room='computer_science'))
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == '#me':
-        print(VimAdv(me=True))
+        print(VimAdv(who='@raa0121', room='computer_science', me=True))
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'rank':
-        print(VimAdv(ranking=True))
+        print(VimAdv(who='@raa0121', room='computer_science', ranking=True))
         sys.exit()
     if len(sys.argv) > 1 and sys.argv[1] == 'debug':
         app.debug = True
@@ -290,7 +290,6 @@ if __name__ == '__main__':
         app.run()
     else:
         app.run(host='0.0.0.0', port=11002)
-
 
 
 
