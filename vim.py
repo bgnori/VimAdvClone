@@ -120,9 +120,16 @@ def vim():
     else:
         return "VimAdvClone & :help"
 
-class Dispatch(object):
-    def __init__(self):
+class Dispatcher(object):
+    def __init__(self, ast, on_no_match=None, on_missing=None, on_toomany=None, on_not_implemetned=None):
         self.mapping = {}
+        self.on_no_match = on_no_match
+        self.on_missing = on_missing
+        self.on_toomany = on_toomany
+        self.on_not_implemetned = on_not_implemetned
+        self.ast = ast
+        self.rx = ast.compile()
+        self.cap = ast.make_capture()
 
     def bind(self, name):
         def foo(f):
@@ -137,37 +144,45 @@ class Dispatch(object):
                 return self.mapping[c.name], c.name
         return None, None
 
-dispatch = Dispatch()
+    def dispatch(self, text):
+        m = self.rx.match(text)
+        if m is None:
+            return self.on_no_match(text)
+
+        d = m.groupdict()
+        assoc = self.cap.associate(d)
+
+        f, name = self.resolve(assoc)
+
+        if f is None:
+            return self.on_not_implemetned(text)
+
+        b = bindable(assoc, d, (name,))
+        missing, toomany = findbind(f, b)
+
+        if missing:
+            return self.on_missing(missing)
+        if toomany:
+            return self.on_toomany(missing)
+        return f(**b)
+
+
+dispatcher = Dispatcher(
+        ast,
+        on_no_match=lambda x : '',
+        on_not_implemetned=lambda text: 'Command not implemented "{0}"'.format(text),
+        on_missing=lambda missing : 'No enough args {0}'.format(missing),
+        on_toomany=lambda toomany : 'Unknown argment {0}'.format(toomany),
+        )
 
 def handle(event):
     text = event['message']['text']
     room = event['message']['room']
     who = event['message']['speaker_id']
+    return dispatcher.dispatch(text)
 
 
-    m = rx.match(text)
-
-    if m is None:
-        return ''
-    d = m.groupdict()
-    assoc = cap.associate(d)
-    
-    f, name = dispatch.resolve(assoc)
-
-    if f is None:
-        return 'Command not implemented "{0}".'.format(text)
-
-    b = bindable(assoc, d, (name,))
-    missing, toomany = findbind(f, b)
-
-    if missing:
-        return 'No enough args {0}'.format(missing)
-    if toomany:
-        return 'Unknown argment {0}'.format(toomany)
-    return f(**b)
-
-
-@dispatch.bind('help')
+@dispatcher.bind('help')
 def help(keyword=None):
     '''generate vim help from file
 
@@ -196,7 +211,7 @@ def prn(entry, url):
     return s.format(entry=entry, url=url)
 
 
-@dispatch.bind('VimAdv')
+@dispatcher.bind('VimAdv')
 def VimAdv(anId=None, ranking=None, me=None, user=None):
     atnd.populate()
 
@@ -227,15 +242,15 @@ def VimAdv(anId=None, ranking=None, me=None, user=None):
 
 
 
-@dispatch.bind('vimhacks')
+@dispatcher.bind('vimhacks')
 def vimhacks():
     pass
 
-@dispatch.bind('MacVim')
+@dispatcher.bind('MacVim')
 def MacVim():
     return 'http://bit.ly/f2fjvZ#.png'
 
-@dispatch.bind('SEGV')
+@dispatcher.bind('SEGV')
 def SEGV():
     return "キャッシュ(笑)"
 
