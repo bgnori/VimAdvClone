@@ -7,6 +7,7 @@ import urllib
 import re
 
 import itertools
+import functools
 
 from flask import Flask, request
 from flask import json
@@ -144,7 +145,7 @@ class Dispatcher(object):
                 return self.mapping[c.name], c.name
         return None, None
 
-    def dispatch(self, text):
+    def dispatch(self, text, **kw):
         m = self.rx.match(text)
         if m is None:
             return self.on_no_match(text)
@@ -156,6 +157,8 @@ class Dispatcher(object):
 
         if f is None:
             return self.on_not_implemetned(text)
+
+        f = functools.partial(f, **kw)
 
         b = bindable(assoc, d, (name,))
         missing, toomany = findbind(f, b)
@@ -179,11 +182,11 @@ def handle(event):
     text = event['message']['text']
     room = event['message']['room']
     who = event['message']['speaker_id']
-    return dispatcher.dispatch(text)
+    return dispatcher.dispatch(text, room=room, who=who)
 
 
 @dispatcher.bind('help')
-def help(keyword=None):
+def help(who, room, keyword=None):
     '''generate vim help from file
 
     a) using tag file to locate file
@@ -212,7 +215,7 @@ def prn(entry, url):
 
 
 @dispatcher.bind('VimAdv')
-def VimAdv(anId=None, ranking=None, me=None, user=None):
+def VimAdv(room, who, anId=None, ranking=None, me=None, user=None):
     atnd.populate()
 
     if not any((anId, ranking, me, user)):
@@ -243,15 +246,15 @@ def VimAdv(anId=None, ranking=None, me=None, user=None):
 
 
 @dispatcher.bind('vimhacks')
-def vimhacks():
+def vimhacks(room, who):
     pass
 
 @dispatcher.bind('MacVim')
-def MacVim():
+def MacVim(room, who):
     return 'http://bit.ly/f2fjvZ#.png'
 
 @dispatcher.bind('SEGV')
-def SEGV():
+def SEGV(room, who):
     return "キャッシュ(笑)"
 
 
